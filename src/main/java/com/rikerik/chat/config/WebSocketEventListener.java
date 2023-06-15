@@ -14,42 +14,24 @@ import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
+@RequiredArgsConstructor
 public class WebSocketEventListener {
-private final SimpMessageSendingOperations messageTemplate;
+
+    private final SimpMessageSendingOperations messagingTemplate;
 
     @EventListener
-    public void handleWebSocketDisconnectListener(
-            SessionDisconnectEvent sdEvent
-    ) {
-        StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(sdEvent.getMessage());
+    public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
+        StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
         String username = (String) headerAccessor.getSessionAttributes().get("username");
         if (username != null) {
-            log.info("User disconnected: {}", username);
+            log.info("user disconnected: {}", username);
             var chatMessage = ChatMessage.builder()
                     .type(MessageType.LEAVE)
                     .sender(username)
                     .build();
-
-            messageTemplate.convertAndSend("/topic/public",chatMessage);
+            messagingTemplate.convertAndSend("/topic/public", chatMessage);
         }
     }
 
-    @EventListener
-    public void handleWebSocketConnectListener(
-            SessionConnectEvent scEvent
-    ) {
-        StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(scEvent.getMessage());
-        String username = (String) headerAccessor.getSessionAttributes().get("username");
-        if (username == null) {
-            log.info("User connected: {}", username);
-            var chatMessage = ChatMessage.builder()
-                    .type(MessageType.JOIN)
-                    .sender(username)
-                    .build();
-
-            messageTemplate.convertAndSend("/topic/public",chatMessage);
-        }
-    }
 }
